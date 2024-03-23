@@ -2,13 +2,21 @@ namespace DependencyInjection.Core;
 
 public class AcaServiceCollection : IAcaServiceCollection
 {
+    private readonly Dictionary<Type, (Type implementationType, ServiceLifetime lifetime)> _services;
+    public AcaServiceCollection()
+    {
+        _services = new Dictionary<Type, (Type, ServiceLifetime)>();
+    }
+
     public IAcaServiceCollection Add(Type serviceType, Type implementationType, ServiceLifetime lifetime)
     {
-        throw new NotImplementedException();
+        _services[serviceType] = (implementationType, lifetime);
+        return this;
     }
 
     public IAcaServiceProvider Build()
     {
-        throw new NotImplementedException();
+        return new AcaServiceProvider(_services);
     }
+
 }
