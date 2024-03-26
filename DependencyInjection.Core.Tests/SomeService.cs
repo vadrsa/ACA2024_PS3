@@ -2,6 +2,11 @@ namespace DependencyInjection.Core.Tests;
 
 public class SomeService
 {
+    public SomeService()
+    {
+
+    }
+    
     public SomeService(SomeServiceL2 someServiceL2)
     {
         
