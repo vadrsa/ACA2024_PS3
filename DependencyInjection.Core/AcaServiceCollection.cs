@@ -17,10 +17,12 @@ public class AcaServiceCollection : IAcaServiceCollection
     private class ServiceProvider : IAcaServiceProvider
     {
         private readonly Dictionary<Type, ServiceDescriptor> _serviceDescriptors;
+        private readonly Dictionary<Type, object> _serviceInstances;
 
         public ServiceProvider(List<ServiceDescriptor> serviceDescriptors)
         {
             _serviceDescriptors = new Dictionary<Type, ServiceDescriptor>();
+            _serviceInstances = new Dictionary<Type, object>();
 
             foreach (var descriptor in serviceDescriptors)
             {
@@ -34,11 +36,12 @@ public class AcaServiceCollection : IAcaServiceCollection
             {
                 if (descriptor.Lifetime == ServiceLifetime.Singleton)
                 {
-                    if (descriptor.Instance == null)
+                    if (!_serviceInstances.TryGetValue(serviceType, out var instance))
                     {
-                        descriptor.Instance = CreateInstance(descriptor.ImplementationType);
+                        instance = CreateInstance(descriptor.ImplementationType);
+                        _serviceInstances[serviceType] = instance;
                     }
-                    return descriptor.Instance;
+                    return instance;
                 }
                 else if (descriptor.Lifetime == ServiceLifetime.Transient)
                 {
@@ -48,9 +51,23 @@ public class AcaServiceCollection : IAcaServiceCollection
             return null;
         }
 
-        private object CreateInstance(Type implementationType)
+        private object? CreateInstance(Type implementationType)
         {
-            return Activator.CreateInstance(implementationType);
+            var constructor = implementationType.GetConstructors()[0];
+            var parameters = constructor.GetParameters();
+            var parameterInstances = new List<object>();
+
+            foreach (var parameter in parameters)
+            {
+                var parameterInstance = GetService(parameter.ParameterType);
+                if (parameterInstance == null)
+                {
+                    throw new InvalidOperationException($"Cannot resolve service for type '{parameter.ParameterType}'.");
+                }
+                parameterInstances.Add(parameterInstance);
+            }
+
+            return Activator.CreateInstance(implementationType, parameterInstances.ToArray());
         }
     }
 }
